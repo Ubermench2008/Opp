@@ -5,20 +5,18 @@
 #include <iomanip>
 #include <cstdlib>
 #include <string>
-#include <omp.h>  // Подключаем OpenMP
+#include <omp.h>
 #include "matrix_generators.h"
 
 using namespace std;
 using namespace std::chrono;
 
-// Функция для вывода подсказки по использованию программы
 void printUsage(const char* progName) {
     cerr << "Использование:\n"
          << progName << " 1 # Ручной ввод матрицы/вектора\n"
          << progName << " 2 [N] # Генерация матрицы/вектора (diag=2, offdiag=1, b[i]=N+1)\n";
 }
 
-// Запрос целого числа
 int promptInt(const string &prompt) {
     int value;
     cout << prompt;
@@ -26,7 +24,6 @@ int promptInt(const string &prompt) {
     return value;
 }
 
-// Ручной ввод матрицы и вектора (режим 1)
 void inputMatrixAndVector(int &N, vector<vector<double>> &A, vector<double> &b) {
     N = promptInt("Введите размер системы (N): ");
     A.assign(N, vector<double>(N, 0.0));
@@ -47,7 +44,6 @@ void inputMatrixAndVector(int &N, vector<vector<double>> &A, vector<double> &b) 
     }
 }
 
-// Получение N из аргументов командной строки или значение по умолчанию
 int getNFromArgsOrDefault(int argc, char* argv[], int defaultN) {
     int N = defaultN;
     if (argc >= 3) {
@@ -62,7 +58,6 @@ int getNFromArgsOrDefault(int argc, char* argv[], int defaultN) {
     return N;
 }
 
-// Последовательное вычисление нормы вектора (используется для вывода)
 double computeNormSeq(const vector<double>& vec) {
     double sum = 0.0;
     for (double x : vec) {
@@ -71,7 +66,6 @@ double computeNormSeq(const vector<double>& vec) {
     return sqrt(sum);
 }
 
-// Последовательное вычисление невязки (используется для итогового вывода)
 vector<double> computeResidualSeq(const vector<vector<double>>& A,
                                   const vector<double>& x,
                                   const vector<double>& b)
@@ -99,7 +93,6 @@ int main(int argc, char* argv[]) {
     vector<vector<double>> A;
     vector<double> b;
 
-    // Выбор режима
     if (mode == 1) {
         inputMatrixAndVector(N, A, b);
     } else if (mode == 2) {
@@ -112,18 +105,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Параметр tau
     double tau = suggestTau(N, 0.95);
-    cout << "\nИспользуем tau = " << tau << "\n";
+    cout << "\ntau = " << tau << "\n";
 
     const double epsilon = 1e-5;
-    cout << "Точность epsilon = " << epsilon << endl;
+    cout << "epsilon = " << epsilon << endl;
     int maxIterations = promptInt("Введите maxIterations: ");
 
-    // Инициализация вектора решения
+    //Вектор решений
     vector<double> x(N, 0.0);
 
-    // Норма b (для критерия остановки)
+    // Норма b
     double normB = computeNormSeq(b);
     if (normB == 0.0) {
         normB = 1.0;
@@ -135,12 +127,10 @@ int main(int argc, char* argv[]) {
     double localSum;
     bool needStop = false;
     
-    // Один параллельный регион на весь алгоритм
     #pragma omp parallel shared(needStop, x, A, b, iteration)
     {
-        // Используем цикл for по итерациям вместо while(true)
         for (int it = 0; it < maxIterations; it++) {
-            // Вычисляем невязку r = A*x - b (параллельно)
+            //r = A*x - b
             vector<double> r(N, 0.0);
             #pragma omp for
             for (int i = 0; i < N; ++i) {
@@ -160,10 +150,9 @@ int main(int argc, char* argv[]) {
             }
             normR = sqrt(localSum);
 
-            // Один поток проверяет критерий остановки
             #pragma omp single
             {
-                iteration = it + 1; // Итерации считаем с 1
+                iteration = it + 1;
                 if ((normR / normB) < epsilon) {
                     needStop = true;
                 }
@@ -175,15 +164,15 @@ int main(int argc, char* argv[]) {
                 break;
             }
 
-            // Обновляем x параллельно: x = x - tau * r
+            //x = x - tau * r
             #pragma omp for
             for (int i = 0; i < N; ++i) {
                 x[i] -= tau * r[i];
             }
 
             #pragma omp barrier
-        } // for(it)
-    } // конец параллельного региона
+        }
+    }
 
     auto endTime = high_resolution_clock::now();
     double elapsedSeconds = duration_cast<microseconds>(endTime - startTime).count() / 1e6;
@@ -192,12 +181,10 @@ int main(int argc, char* argv[]) {
     cout << "Время выполнения: " << fixed << setprecision(6)
          << elapsedSeconds << " секунд.\n";
 
-    // Последовательное вычисление финальной невязки (только для вывода)
     vector<double> rFinal = computeResidualSeq(A, x, b);
     double normFinal = computeNormSeq(rFinal);
     cout << "\n||A*x - b|| = " << fixed << setprecision(6) << normFinal << "\n\n";
 
-    // Вывод первых нескольких компонент решения
     int nPrint = (N < 10 ? N : 10);
     cout << fixed << setprecision(6);
     cout << "Первые " << nPrint << " компонент x:\n";
