@@ -1,23 +1,21 @@
-#include <iostream>                     // Для стандартного ввода-вывода
-#include <vector>                       // Для динамических массивов (векторов)
-#include <cmath>                        // Для математических функций (sqrt, sin и т.д.)
-#include <chrono>                       // Для измерения времени выполнения
-#include <iomanip>                      // Для манипуляции форматированием вывода
-#include <cstdlib>                      // Для стандартных функций (например, atoi)
-#include <string>                       // Для работы со строками
-#include "matrix_generators.h"          // Пользовательский заголовочный файл с функциями генерации матриц/векторов
+#include <iostream>                    
+#include <vector>                      
+#include <cmath>                    
+#include <chrono>                    
+#include <iomanip>                 
+#include <cstdlib>                    
+#include <string>                      
+#include "matrix_generators.h"         
 
 using namespace std;
 using namespace std::chrono;
 
-// Функция для вывода подсказки по использованию программы
 void printUsage(const char* progName) {                
     cerr << "Использование:\n"
          << progName << " 1 # Ручной ввод\n"  
          << progName << " 2 # Генерация матрицы/вектора\n";
 }
 
-// Функция для запроса целочисленного ввода с сообщением
 int promptInt(const string &message) {                
     int value;
     cout << message;
@@ -25,7 +23,6 @@ int promptInt(const string &message) {
     return value;
 }
 
-// Функция для запроса вещественного ввода с сообщением (не используется в данном варианте)
 double promptDouble(const string &message) {          
     double value;
     cout << message;
@@ -33,7 +30,6 @@ double promptDouble(const string &message) {
     return value;
 }
 
-// Функция для ручного ввода матрицы и вектора (режим 1)
 void inputMatrixAndVector(int &N, vector<vector<double>> &A, vector<double> &b) {  
     N = promptInt("Введите размер матрицы [N]: ");  
     A.assign(N, vector<double>(N, 0.0));             
@@ -52,7 +48,6 @@ void inputMatrixAndVector(int &N, vector<vector<double>> &A, vector<double> &b) 
     }
 }
 
-// Функция для получения значения N из аргументов командной строки или установки значения по умолчанию
 int getNFromArgsOrDefault(int argc, char* argv[], int defaultN) {  
     int N = defaultN;                              
     if (argc >= 3) {                               
@@ -67,7 +62,6 @@ int getNFromArgsOrDefault(int argc, char* argv[], int defaultN) {
     return N;                                      
 }
 
-// Функция для вычисления нормы (евклидовой) вектора
 double computeNorm(const vector<double>& vec) {    
     double sum = 0.0;                              
     for (double x : vec) {                         
@@ -76,7 +70,7 @@ double computeNorm(const vector<double>& vec) {
     return sqrt(sum);                              
 }
 
-// Функция для вычисления невязки r = A*x - b
+//r = A*x - b
 vector<double> computeResidual(const vector<vector<double>>& A, const vector<double>& x, const vector<double>& b) {  
     int N = x.size();                              
     vector<double> r(N, 0.0);                        
@@ -113,12 +107,11 @@ int main(int argc, char* argv[]) {
         return 1;                                  
     }
 
-    // Используем значение tau, предлагаемое функцией suggestTau
     double tau = suggestTau(N, 0.95);
-    cout << "\nИспользуем tau = " << tau << "\n";
+    cout << "\ntau = " << tau << "\n";
     
     const double epsilon = 0.00001;                
-    cout << "Точность epsilon = " << epsilon << endl;
+    cout << "epsilon = " << epsilon << endl;
     int maxIterations = promptInt("Введите maxIterations: ");
 
     vector<double> x(N, 0.0);
