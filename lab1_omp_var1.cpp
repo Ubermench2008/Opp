@@ -5,13 +5,12 @@
 #include <iomanip>
 #include <cstdlib>
 #include <string>
-#include <omp.h>                 // <--- Подключаем OpenMP
+#include <omp.h>                
 #include "matrix_generators.h"
 
 using namespace std;
 using namespace std::chrono;
 
-// Вывод справки
 void printUsage(const char* progName) {
     cerr << "Использование:\n"
          << progName << " 1 # Ручной ввод матрицы/вектора\n"
@@ -32,7 +31,6 @@ double promptDouble(const string &prompt) {
     return value;
 }
 
-// Ручной ввод
 void inputMatrixAndVector(int &N, vector<vector<double>> &A, vector<double> &b) {
     N = promptInt("Введите размер системы (N): ");
     A.assign(N, vector<double>(N, 0.0));
@@ -51,7 +49,6 @@ void inputMatrixAndVector(int &N, vector<vector<double>> &A, vector<double> &b) 
     }
 }
 
-// Получение N из аргументов командной строки или по умолчанию
 int getNFromArgsOrDefault(int argc, char* argv[], int defaultN) {
     int N = defaultN;
     if (argc >= 3) {
@@ -66,10 +63,8 @@ int getNFromArgsOrDefault(int argc, char* argv[], int defaultN) {
     return N;
 }
 
-// Вычисление евклидовой нормы вектора (распараллеленный цикл)
 double computeNorm(const vector<double>& vec) {
     double sum = 0.0;
-    // Добавляем параметр schedule(dynamic, 10)
     #pragma omp parallel for reduction(+:sum) schedule(auto)
     for (int i = 0; i < (int)vec.size(); ++i) {
         sum += vec[i] * vec[i];
@@ -77,7 +72,7 @@ double computeNorm(const vector<double>& vec) {
     return sqrt(sum);
 }
 
-// Вычисление невязки r = A*x - b (распараллеленный внешний цикл)
+//r = A*x - b
 vector<double> computeResidual(const vector<vector<double>>& A,
                                const vector<double>& x,
                                const vector<double>& b)
@@ -85,7 +80,6 @@ vector<double> computeResidual(const vector<vector<double>>& A,
     int N = x.size();
     vector<double> r(N, 0.0);
 
-    // Используем schedule с динамическим распределением и размером чанка 10
     #pragma omp parallel for schedule(auto)
     for (int i = 0; i < N; ++i) {
         double sum = 0.0;
@@ -137,7 +131,7 @@ int main(int argc, char* argv[]) {
     
     auto start = high_resolution_clock::now();
     while (iteration < maxIterations) {
-        // Распараллеленное вычисление r = A*x - b с параметрами schedule
+        //r = A*x - b
         vector<double> r = computeResidual(A, x, b);
         double normR = computeNorm(r);
 
@@ -145,7 +139,7 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        // Добавляем директиву schedule(static, 10) для цикла обновления x
+        //update x
         #pragma omp parallel for schedule(auto)
         for (int i = 0; i < N; ++i) {
             x[i] -= tau * r[i];
